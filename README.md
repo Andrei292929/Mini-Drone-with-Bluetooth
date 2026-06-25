@@ -30,7 +30,7 @@ Motor layout:
               FRONT
 
         MOTOR1        MOTOR2
-        GPIO15        GPIO17
+        GPIO15        GPIO18
       front-left   front-right
 
 
