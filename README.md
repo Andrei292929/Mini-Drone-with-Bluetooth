@@ -1,84 +1,98 @@
 ESP32 Mini Drone — Technical Documentation
 
-This project implements a simple ESP32-based mini drone control system using an MPU6050 inertial sensor, four PWM-controlled motors, and Wi-Fi remote control. The ESP32 reads the drone tilt using the MPU6050, calculates pitch and roll corrections, and adjusts the motor outputs using PWM. It also creates a local Wi-Fi network, allowing the user to control the drone from a phone or laptop through a simple browser interface.
+This project implements a simple ESP32-based mini drone control system using an MPU6050 inertial sensor, four PWM-controlled motors, and Wi-Fi remote control. The ESP32 reads the drone tilt, calculates pitch and roll corrections, and adjusts the motor outputs using PWM. It also creates a local Wi-Fi network, allowing the user to control the system from a phone or laptop through a simple browser page.
 
+------------------------------------------------------------
 Installation
+------------------------------------------------------------
 
-1. Install ESP32 board support:
-Arduino IDE -> Tools -> Board -> Boards Manager
-Search for: esp32
-Install: esp32 by Espressif Systems
+1. Install ESP32 board support
 
-Then select your board from:
-Tools -> Board -> ESP32 Arduino -> ESP32 Dev Module
+In Arduino IDE, open:
+Tools -> Board -> Boards Manager
 
-or choose the exact ESP32 board you are using.
-
-2. Install required libraries:
-Arduino IDE -> Sketch -> Include Library -> Manage Libraries
+Search for:
+esp32
 
 Install:
+esp32 by Espressif Systems
+
+After installation, select your ESP32 board from:
+Tools -> Board -> ESP32 Arduino -> ESP32 Dev Module
+
+If you are using a specific ESP32 board, select that exact model instead.
+
+2. Install the required libraries
+
+In Arduino IDE, open:
+Sketch -> Include Library -> Manage Libraries
+
+Install the following libraries:
 - Adafruit MPU6050
 - Adafruit Unified Sensor
 - Adafruit BusIO
 
-WiFi.h and WebServer.h do not need to be installed separately. They are included with the ESP32 board package.
+The WiFi.h and WebServer.h libraries do not need to be installed separately. They are included automatically with the ESP32 board package.
 
-System Architecture
+------------------------------------------------------------
+System Overview
+------------------------------------------------------------
 
-The system has three main parts:
+The project is divided into three main parts: sensor reading, stabilization logic, and wireless control. The MPU6050 sends acceleration data to the ESP32 through I2C. The ESP32 uses this data to estimate pitch and roll, then calculates correction values. These corrections are mixed with the user commands received through Wi-Fi and converted into PWM values for the four motors.
 
-1. Sensor reading
-The ESP32 reads data from the MPU6050 using I2C.
+The Wi-Fi control is handled by the ESP32 itself. It creates its own access point, hosts a small web page, and receives commands such as W, A, S, D, Q, E, and X. This makes it possible to control the drone from a phone or laptop without needing an external router.
 
-2. Stabilization logic
-The ESP32 calculates pitch and roll, then computes correction values.
-
-3. Motor and Wi-Fi control
-The ESP32 sends PWM signals to the motors and receives W A S D commands through Wi-Fi.
-
+------------------------------------------------------------
 Hardware Components
+------------------------------------------------------------
 
-- ESP32
-- MPU6050 / GY-521
+Required components:
+- ESP32 development board
+- MPU6050 / GY-521 module
 - 4 DC motors
-- 4 transistors / MOSFETs / motor drivers
-- External power supply for motors
+- 4 transistors, MOSFETs, or motor drivers
+- External power supply for the motors
 - Jumper wires
 - Breadboard or prototype board
 
+The ESP32 should only be used to send control signals. The motors must be powered separately through proper motor-driving components.
+
+------------------------------------------------------------
 MPU6050 Wiring
+------------------------------------------------------------
+
+The MPU6050 communicates with the ESP32 using I2C.
 
 MPU6050 -> ESP32
-
 VCC -> 3V3
 GND -> GND
 SDA -> GPIO21
 SCL -> GPIO22
 AD0 -> GND
 
-With AD0 connected to GND, the MPU6050 I2C address is 0x68.
+When AD0 is connected to GND, the MPU6050 I2C address is 0x68.
 
+------------------------------------------------------------
 Motor Wiring
+------------------------------------------------------------
 
-The motors must not be connected directly to the ESP32 pins. The ESP32 only provides PWM control signals. Each motor must be driven using a transistor, MOSFET, or motor driver.
+The motors must not be connected directly to the ESP32 pins. Each ESP32 GPIO pin sends a PWM signal to a transistor, MOSFET, or motor driver, which then controls the motor.
 
-Motors -> ESP32 control pins
-
-Motor 1, front-left  -> GPIO15
-Motor 2, front-right -> GPIO18
-Motor 3, back-left   -> GPIO19
-Motor 4, back-right  -> GPIO23
+Motor control pin mapping:
+- GPIO15 -> Motor 1, front-left
+- GPIO18 -> Motor 2, front-right
+- GPIO19 -> Motor 3, back-left
+- GPIO23 -> Motor 4, back-right
 
 Basic motor connection:
-
 ESP32 GPIO -> transistor / MOSFET / motor driver -> motor
 
-External motor power supply -> motors
+The external motor power supply must power the motors, and its ground must be connected to the ESP32 ground:
+Motor power supply GND -> ESP32 GND
 
-External motor power supply GND -> ESP32 GND
-
+------------------------------------------------------------
 Motor Layout
+------------------------------------------------------------
 
               FRONT
 
@@ -90,110 +104,101 @@ Motor Layout
 
               BACK
 
+------------------------------------------------------------
 Wi-Fi Control
+------------------------------------------------------------
 
-The ESP32 creates its own Wi-Fi network:
+The ESP32 creates its own Wi-Fi network.
 
-SSID: DroneESP32
-Password: 12345678
+Network name:
+DroneESP32
 
-After connecting to this network, open the ESP32 IP address in a browser. Usually:
+Password:
+12345678
 
+After connecting to this network from a phone or laptop, open the ESP32 IP address in a browser. In most cases, the address is:
 192.168.4.1
 
+The web page sends simple movement commands to the ESP32.
+
 Available commands:
+- W = forward
+- S = backward
+- A = left
+- D = right
+- Q = decrease throttle
+- E = increase throttle
+- X = stop motors
 
-W = forward
-S = backward
-A = left
-D = right
-Q = decrease throttle
-E = increase throttle
-X = stop motors
+The commands do not directly power the motors. They modify control variables inside the program, such as throttle, pitchCmd, and rollCmd. These variables are then combined with the stabilization corrections.
 
+------------------------------------------------------------
 Project Files
+------------------------------------------------------------
 
 minidrona.ino
 
-This is the main control file. It initializes the MPU6050, reads accelerometer data, calculates pitch and roll, computes stabilization corrections, mixes user commands with stabilization output, and sends PWM signals to the four motors.
+This is the main control file. It initializes the MPU6050, reads sensor data, calculates pitch and roll, computes stabilization corrections, mixes the user commands with the correction values, and sends PWM signals to the four motors.
 
 wifi_control.ino
 
-This file handles Wi-Fi communication. It creates the ESP32 Wi-Fi access point, starts a WebServer on port 80, serves a simple HTML control page, receives W A S D Q E X commands, and updates throttle, pitchCmd, and rollCmd.
+This file handles the wireless control system. It creates the ESP32 Wi-Fi access point, starts a WebServer on port 80, serves a simple HTML control page, receives W, A, S, D, Q, E, and X commands, and updates the global control variables used by the main file.
 
+------------------------------------------------------------
 Sensor Processing
+------------------------------------------------------------
 
-The MPU6050 provides acceleration values on three axes:
+The MPU6050 provides acceleration values on three axes: ax, ay, and az. The ESP32 uses these values to estimate the tilt of the drone.
 
-ax
-ay
-az
+Pitch represents forward/backward tilt.
+Roll represents left/right tilt.
 
-The ESP32 uses these values to estimate:
+The target position is pitch = 0 and roll = 0, meaning the drone is considered level. The error is calculated as the difference between the target value and the measured value.
 
-pitch = forward/backward tilt
-roll = left/right tilt
-
-The target position is:
-
-pitch = 0
-roll = 0
-
-The error is calculated as:
-
+Formula:
 error = target value - measured value
 
-The correction is calculated as:
+The correction is calculated using a proportional gain called Kp.
 
+Formula:
 correction = error × Kp
 
-Kp is the proportional gain. A higher Kp makes the motors react more strongly to tilt.
+A higher Kp makes the motors react more strongly to tilt. A lower Kp makes the system react more slowly and smoothly.
 
+------------------------------------------------------------
 Motor Control Logic
+------------------------------------------------------------
 
-The final motor values are calculated using:
+The final PWM value for each motor is calculated by combining the base throttle, the user command, and the stabilization correction.
 
-throttle
-pitchCmd
-rollCmd
-pitchCorrection
-rollCorrection
+Main control variables:
+- throttle controls the base motor power
+- pitchCmd is modified by W and S commands
+- rollCmd is modified by A and D commands
+- pitchCorrection comes from the MPU6050 pitch error
+- rollCorrection comes from the MPU6050 roll error
 
-throttle controls the base motor power.
-pitchCmd is modified by W and S commands.
-rollCmd is modified by A and D commands.
-pitchCorrection and rollCorrection come from the MPU6050 stabilization logic.
+The resulting values are limited to the PWM range of 0 to 255. A value of 0 means the motor is stopped, while 255 means maximum PWM output.
 
-The resulting motor values are limited to the PWM range:
-
-0 to 255
-
+------------------------------------------------------------
 PWM Output
+------------------------------------------------------------
 
-The ESP32 uses LEDC PWM output.
+The ESP32 uses LEDC PWM output for motor control.
 
-Frequency: 1000 Hz
-Resolution: 8-bit
-Range: 0–255
+PWM settings:
+- Frequency: 1000 Hz
+- Resolution: 8-bit
+- Value range: 0 to 255
 
-0 means motor off.
-255 means maximum PWM output.
+Because the resolution is 8-bit, the PWM output accepts values from 0 to 255. These values control the average power sent to the motor driver.
 
+------------------------------------------------------------
 Important Notes
+------------------------------------------------------------
 
-This is a simplified educational prototype, not a complete flight controller.
+This project is a simplified educational prototype, not a complete flight controller. It is meant to demonstrate how an ESP32 can read MPU6050 motion data, calculate basic pitch and roll corrections, receive Wi-Fi commands, and generate PWM signals for motor control.
 
-For real flight, additional features are required:
+For real flight, the system would need PID control, sensor calibration, signal filtering, failsafe logic, battery monitoring, emergency stop handling, proper motor drivers, and a safe mechanical design.
 
-- PID control
-- Sensor calibration
-- Filtering
-- Failsafe logic
-- Battery monitoring
-- Emergency stop
-- Proper motor drivers
-- Safe mechanical design
-
-Always test without propellers first.
-
-Do not connect motors directly to the ESP32.
+Always test without propellers first. Do not connect motors directly to the ESP32 pins. Each motor must be driven through a transistor, MOSFET, or motor driver, and the motor power supply ground must be connected to the ESP32 ground.
