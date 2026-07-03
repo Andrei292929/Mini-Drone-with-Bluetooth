@@ -4,10 +4,10 @@
 
 Adafruit_MPU6050 mpu;
 
-#define MOTOR1 15
-#define MOTOR2 18
-#define MOTOR3 19
-#define MOTOR4 23
+#define MOTOR_FS 19  // F-S
+#define MOTOR_FD 17  // F-D
+#define MOTOR_SS 23  // S-S
+#define MOTOR_SD 15  // S-D
 
 #define PWM_FREQ 1000
 #define PWM_RES 8
@@ -37,10 +37,10 @@ void setup() {
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
-  ledcAttach(MOTOR1, PWM_FREQ, PWM_RES);
-  ledcAttach(MOTOR2, PWM_FREQ, PWM_RES);
-  ledcAttach(MOTOR3, PWM_FREQ, PWM_RES);
-  ledcAttach(MOTOR4, PWM_FREQ, PWM_RES);
+  ledcAttach(MOTOR_FS, PWM_FREQ, PWM_RES);
+  ledcAttach(MOTOR_FD, PWM_FREQ, PWM_RES);
+  ledcAttach(MOTOR_SS, PWM_FREQ, PWM_RES);
+  ledcAttach(MOTOR_SD, PWM_FREQ, PWM_RES);
 
   setupWiFiControl();
 
@@ -66,41 +66,49 @@ void loop() {
   float pitchCorrection = pitchError * Kp;
   float rollCorrection  = rollError * Kp;
 
-  int motor1Value = throttle + pitchCmd - rollCmd + pitchCorrection - rollCorrection;
-  int motor2Value = throttle + pitchCmd + rollCmd + pitchCorrection + rollCorrection;
-  int motor3Value = throttle - pitchCmd - rollCmd - pitchCorrection - rollCorrection;
-  int motor4Value = throttle - pitchCmd + rollCmd - pitchCorrection + rollCorrection;
+  int motorFSValue = throttle + pitchCmd + rollCmd - pitchCorrection - rollCorrection;
+  int motorFDValue = throttle + pitchCmd - rollCmd - pitchCorrection + rollCorrection;
+  int motorSSValue = throttle - pitchCmd + rollCmd + pitchCorrection - rollCorrection;
+  int motorSDValue = throttle - pitchCmd - rollCmd + pitchCorrection + rollCorrection;
 
-  motor1Value = constrain(motor1Value, 0, 255);
-  motor2Value = constrain(motor2Value, 0, 255);
-  motor3Value = constrain(motor3Value, 0, 255);
-  motor4Value = constrain(motor4Value, 0, 255);
+  motorFSValue = constrain(motorFSValue, 0, 255);
+  motorFDValue = constrain(motorFDValue, 0, 255);
+  motorSSValue = constrain(motorSSValue, 0, 255);
+  motorSDValue = constrain(motorSDValue, 0, 255);
 
-  ledcWrite(MOTOR1, motor1Value);
-  ledcWrite(MOTOR2, motor2Value);
-  ledcWrite(MOTOR3, motor3Value);
-  ledcWrite(MOTOR4, motor4Value);
+  ledcWrite(MOTOR_FS, motorFSValue);
+  ledcWrite(MOTOR_FD, motorFDValue);
+  ledcWrite(MOTOR_SS, motorSSValue);
+  ledcWrite(MOTOR_SD, motorSDValue);
 
+
+  //Pt debug:
   // Serial.print("Throttle: ");
   // Serial.print(throttle);
 
-  // Serial.print(" Pitch: ");
+  // Serial.print(" | Pitch: ");
   // Serial.print(pitch);
 
-  // Serial.print(" Roll: ");
+  // Serial.print(" | Roll: ");
   // Serial.print(roll);
 
-  // Serial.print(" M1: ");
-  // Serial.print(motor1Value);
+  // Serial.print(" | pitchCmd: ");
+  // Serial.print(pitchCmd);
 
-  // Serial.print(" M2: ");
-  // Serial.print(motor2Value);
+  // Serial.print(" | rollCmd: ");
+  // Serial.print(rollCmd);
 
-  // Serial.print(" M3: ");
-  // Serial.print(motor3Value);
+  // Serial.print(" | FS: ");
+  // Serial.print(motorFSValue);
 
-  // Serial.print(" M4: ");
-  // Serial.println(motor4Value);
+  // Serial.print(" FD: ");
+  // Serial.print(motorFDValue);
+
+  // Serial.print(" SS: ");
+  // Serial.print(motorSSValue);
+
+  // Serial.print(" SD: ");
+  // Serial.println(motorSDValue);
 
   delay(100);
 }
